@@ -16,7 +16,7 @@ sf::st_bbox(domains %>% filter(DomainName == area_full))
 # use wget for Linux https://disc.gsfc.nasa.gov/data-access
 # set up cookies
 # vim ~/.urs_cookies
-# wget --load-cookies ~/.urs_cookies --save-cookies ~/.urs_cookies --auth-no-challenge=on --keep-session-cookies --user=yiluansong --ask-password https://e4ftl01.cr.usgs.gov//DP131/MOLA/MYD13A1.061/2023.01.25/MYD13A1.A2023025.h10v05.061.2023042003035.hdf
+# wget --load-cookies ~/.urs_cookies --save-cookies ~/.urs_cookies --auth-no-challenge=on --keep-session-cookies --user=yiluansong --ask-password https://e4ftl01.cr.usgs.gov//DP131/MOLA/MYD13A1.061/2023.01.25/MYD13A1.A2023025.h10v05.061.2023042003035.hdf 
 # batch download
 # wget --load-cookies ~/.urs_cookies --save-cookies ~/.urs_cookies --auth-no-challenge=on --keep-session-cookies -nc -nv --content-disposition -i ./aqua_download.txt --directory-prefix=./
 # wget --load-cookies ~/.urs_cookies --save-cookies ~/.urs_cookies --auth-no-challenge=on --keep-session-cookies -nc -nv --content-disposition -i ./terra_download.txt --directory-prefix=./

@@ -3,5 +3,5 @@
 # get US boundary
 file<-str_c(.path$neon_domain,"NEON_Domains.shp")
 domains <- sf::st_read(file)
-plot(domains)
+# plot(domains)
 domains$DomainName %>% unique()

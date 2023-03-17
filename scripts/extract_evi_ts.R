@@ -13,7 +13,7 @@ coord_df <- coord %>%
 
 plot(sf::st_geometry(coord), add = T)
 
-sf::st_crs(coord)$proj4string
+# sf::st_crs(coord)$proj4string
 coord_reproj <- sf::st_transform(coord,
   crs = sf::st_crs("+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs")
 )
@@ -53,9 +53,6 @@ for (i in 1:length(date_list)) {
   # https://rspatial.org/modis/4-quality.html
   # https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD13A1#bands
 
-  evi_df$qa[1] %>%
-    R.utils::intToBin() %>%
-    str_pad(15, pad = "0", side = "left")
   evi_df_list[[i]] <- evi_df
   print(i)
 }
