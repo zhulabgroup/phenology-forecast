@@ -16,40 +16,19 @@ source("scripts/setup.R")
 source("scripts/read_neon_domain.R")
 ```
 
-```{r}
-source("scripts/download_modis.R")
+```{r, eval=FALSE}
+source("scripts/download_modis.R") # I used 36 CPUs, 7 GB MEM
+```
+
+```{r, eval=FALSE}
+source("scripts/save_evi.R") # I used 36 CPUs, 150 GB MEM
+```
+
+```{r, eval=FALSE}
+source("scripts/extract_evi_ts.R") # I used 36 CPUs, 50 GB MEM
 ```
 
 ```{r}
-source("scripts/save_evi.R")
-```
-
-```{r}
-source("scripts/extract_evi_ts.R")
-```
-
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
-
-```{r}
-source("scripts/setup.R")
+source("scripts/explore_evi_ts.R")
 ```
 

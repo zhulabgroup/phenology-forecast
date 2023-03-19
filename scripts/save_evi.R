@@ -1,4 +1,4 @@
-area <- "Appalachians"
+source("scripts/read_neon_domain.R")
 
 # get dates
 filenames <- list.files(str_c(.path$rs_modis, area), pattern = "hdf")
@@ -8,9 +8,18 @@ day_code_list <- filenames %>%
   pull(X2) %>%
   unique() %>%
   sort()
+# length(day_code_list)*8/365
 
 # save evi and qa layers in tif
-for (day_code in day_code_list) {
+cl <- makeCluster(36, type = "SOCK", outfile = "")
+registerDoSNOW(cl)
+foreach(
+  day_code = day_code_list_diff,
+  .packages = c("tidyverse", "terra")
+) %dopar% {
+  Sys.sleep(runif(1) * 36)
+
+  # day_code=day_code_list_diff[3]
   filenames_day <- list.files(str_c(.path$rs_modis, area), pattern = day_code, full.names = T)
   if (length(filenames_day) > 0) {
     year <- day_code %>%
@@ -20,23 +29,44 @@ for (day_code in day_code_list) {
       str_sub(6, 8) %>%
       as.numeric()
     date <- as.Date(str_c(year, "-01-01")) + doy - 1
-    evi_ras_list <- vector(mode = "list")
-    qa_ras_list <- vector(mode = "list")
-    for (i in 1:length(filenames_day)) {
-      file <- filenames_day[i]
-      ras <- file %>%
-        terra::rast()
-      evi_ras_list[[i]] <- ras %>%
-        terra::subset(subset = 2)
-      qa_ras_list[[i]] <- ras %>%
-        terra::subset(subset = 3)
+
+    if (!file.exists(str_c(.path$rs_evi, area, "/evi.", date, ".tif"))) {
+      evi_ras_list <- vector(mode = "list")
+      qa_ras_list <- vector(mode = "list")
+      for (i in 1:length(filenames_day)) {
+        # try({
+        file <- filenames_day[i]
+        ras <- file %>%
+          terra::rast()
+        evi_ras_list[[i]] <- ras %>%
+          terra::subset(subset = 2)
+        qa_ras_list[[i]] <- ras %>%
+          terra::subset(subset = 3)
+        # })
+      }
+      # evi_ras_list<-evi_ras_list %>% discard(is.null)
+      # qa_ras_list<-qa_ras_list %>% discard(is.null)
+
+      # if (length(evi_ras_list)==1) {
+      #   evi_ras <- evi_ras_list [[1]]
+      #   qa_ras <- qa_ras_list [[1]]
+      # } else {
+      evi_ras <- do.call(terra::mosaic, c(evi_ras_list, fun = "mean"))
+      qa_ras <- do.call(terra::mosaic, c(qa_ras_list, fun = "max"))
+      # }
+      evi_ras <- evi_ras %>%
+        terra::crop(domain_reproj) %>%
+        terra::mask(domain_reproj)
+      qa_ras <- qa_ras %>%
+        terra::crop(domain_reproj) %>%
+        terra::mask(domain_reproj)
+
+      # terra::plot(evi_ras)
+      # terra::crs(evi_ras,proj=T)
+      terra::writeRaster(evi_ras, str_c(.path$rs_evi, area, "/evi.", date, ".tif"), overwrite = T)
+      terra::writeRaster(qa_ras, str_c(.path$rs_evi, area, "/qa.", date, ".tif"), overwrite = T)
+      print(date)
     }
-    evi_ras <- do.call(terra::mosaic, c(evi_ras_list, fun = "mean"))
-    qa_ras <- do.call(terra::mosaic, c(qa_ras_list, fun = "max"))
-    # terra::plot(evi_ras)
-    # terra::crs(evi_ras,proj=T)
-    terra::writeRaster(evi_ras, str_c(.path$rs_evi, area, "/evi.", date, ".tif"), overwrite = T)
-    terra::writeRaster(qa_ras, str_c(.path$rs_evi, area, "/qa.", date, ".tif"), overwrite = T)
-    print(date)
   }
 }
+stopCluster(cl)
