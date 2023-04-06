@@ -9,11 +9,16 @@ evi_df <- read_rds(str_c(.path$rs_evi, area, ".ts.rds")) %>%
 #library(phenor)
 #data("phenocam_DB")
 #data("ndvi")
-
+evi_df <- evi_df %>% mutate(
+  year = as.numeric(format(date, format = "%Y")),
+  month = as.numeric(format(date, format = "%m")),
+  day = as.numeric(format(date, format = "%d")),
+  doy = lubridate::yday(date)
+)
 
 #optimize_parameters()
 #estimate_phenology()
-
+View(evi_df)
 
 evi_df_max <- evi_df %>%
   group_by(id, date, year, month) %>%
@@ -42,11 +47,11 @@ View(evi_df_m)
 evi_df_m %>% ggplot(aes(x = month, y = n, color = id)) +
   geom_point()
 
-evi_df %>%
-  filter(date < "2001-12-27") %>%
+evi_df %>% 
+  filter(date < "2007-12-27") %>%
+  filter(date >= "2006-01-09") %>%
   ggplot() +
-  geom_line(aes(x = month, y = evi, group = id),
+  geom_line(aes(x = date, y = evi,group = id),
     col = "darkgreen",
-    alpha = 0.2
-  ) +
+    alpha = 0.2) +
   theme_classic()
