@@ -4,7 +4,7 @@ evi_df <- read_rds(str_c(.path$rs_evi, area, ".ts.rds")) %>%
   select(id, lon, lat, date, evi) %>%
   as_tibble()
 
-
+View(evi_df)
 #devtools::install_github("bluegreen-labs/phenor@v1.0")
 #library(phenor)
 #data("phenocam_DB")
