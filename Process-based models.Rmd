@@ -9,6 +9,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
+```
+
+
+```{r}
 source("scripts/setup.R")
 ```
 
@@ -30,5 +34,10 @@ source("scripts/extract_evi_ts.R") # I used 36 CPUs, 50 GB MEM
 
 ```{r}
 source("scripts/explore_evi_ts.R")
+```
+
+```{r}
+#remotes::install_github("bluegreen-labs/phenor")
+library(phenor)
 ```
 
