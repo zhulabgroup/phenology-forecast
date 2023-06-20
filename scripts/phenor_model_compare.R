@@ -2,6 +2,9 @@ library(phenor)
 library(greenbrown)
 library(tidyverse)
 
+evi_DB <- read_rds("evi_DB.rds")
+View(evi_DB)
+
 # load the included data using
 data("phenocam_DB")
 View(phenocam_DB)
@@ -15,16 +18,17 @@ par_ranges <- read.table(path,
 
 # optimize model parameters
 set.seed(1234)
-optim.par <- pr_fit_parameters(par = c(180,180,0,4,2.5,7.5,1000,180),
+optim.par <- optimize_parameters(par = c(0,0),
                                data = evi_DB,
                                cost = rmse,
-                               model = "SQ",
-                               method = "GenSA",
-                               lower = c(1,1,-10,-5,-5,0,0,0),
-                               upper = c(365,365,10,10,10,15,2000,350),
+                               model = "LIN",
+                               method = "genoud",
+                               lower = c(-1000,-1000),
+                               upper = c(1000,1000),
                                control=NULL)
 optim.par
 ?pr_fit_parameters
+
 
 #SQ
 c(180,180,0,2.5,2.5,7.5,1000,180)

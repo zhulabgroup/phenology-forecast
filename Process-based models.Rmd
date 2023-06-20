@@ -37,7 +37,7 @@ source("scripts/explore_evi_ts.R")
 ```
 
 ```{r}
-#remotes::install_github("bluegreen-labs/phenor")
+remotes::install_github("bluegreen-labs/phenor@v1.0")
 library(phenor)
 ```
 
