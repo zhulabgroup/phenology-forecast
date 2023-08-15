@@ -21,6 +21,9 @@ par_ranges <- read.table(path,
 
 v_model <- c("LIN", "TT", "PTT", "M1", "AT", "SQ", "SM1", "PA", "PM1")
 
+cl <- makeCluster(36, outfile = "")
+registerDoSNOW(cl)
+
 # this step still takes pretty long
 ls_df_model <-
   foreach(
@@ -80,6 +83,8 @@ df_model <- bind_rows(ls_df_model) %>%
   mutate(model = factor(model,
     levels = c("LIN", "TT", "PTT", "M1", "AT", "SQ", "SM1", "PA", "PM1")
   ))
+
+#write_rds(df_model,str_c(.path$dat_proc,"model_pred.rds"))
 
 ggplot(df_model) +
   geom_jitter(aes(x = doy, y = pred, col = site)) +

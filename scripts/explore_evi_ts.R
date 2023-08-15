@@ -1,7 +1,7 @@
 
 evi_df <- read_rds(str_c(.path$rs_evi, area, ".ts.rds")) %>%
   filter(qa_good) %>%
-  select(id, lon, lat, date, evi) %>%
+  dplyr::select(id, lon, lat, date, evi) %>%
   as_tibble()
 
 View(evi_df)

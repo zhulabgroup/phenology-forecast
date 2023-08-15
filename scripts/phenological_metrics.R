@@ -76,24 +76,24 @@ ls_df_evi <-
 evi_all <- bind_rows(ls_df_evi)
 stopCluster(cl)
 
-ggplot(evi_all) +
+evi_all_test <- evi_all %>% filter(id <= 2)
+
+View(evi_all)
+ggplot(evi_all_test) +
   geom_line(
     aes(x = doy, y = evi_tsgf, group = year, col = year),
     alpha = 0.5
   ) +
-  geom_vline(aes(xintercept = sos), alpha = 0.2) +
-  geom_vline(aes(xintercept = eos), alpha = 0.2) +
+  geom_vline(aes(xintercept = sos,color = year), alpha = 0.2) +
+  geom_vline(aes(xintercept = eos,color = year), alpha = 0.2) +
   theme_classic() +
   facet_wrap(. ~ id) +
   scale_color_viridis_c()
 
 
 
-#### Ziyu, here are some residual code from previous testing. Please tidy up or delete.
 
-data(ndvi)
-x <- as.vector(window(ndvi, start = c(1991, 1), end = c(1991, 12)))
-plot(x)
+
 
 # fit double-logistic function to one year of data
 fit <- FitDoubleLogElmore(x)

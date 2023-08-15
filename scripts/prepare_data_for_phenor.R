@@ -4,6 +4,9 @@
 df_evi_meta <- evi_df %>%
   distinct(id, lat, lon)
 
+cl <- makeCluster(36, outfile = "")
+registerDoSNOW(cl)
+
 evi_DB <- foreach(
   idoi = v_id,
   .packages = c("tidyverse", "lubridate", "daymetr")
