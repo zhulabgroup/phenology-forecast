@@ -1,6 +1,7 @@
 # install.packages("greenbrown", repos = "http://R-Forge.R-project.org", dependencies = FALSE)
 library(greenbrown)
 
+
 # extract phenological metrics
 v_id <- evi_df %>%
   pull(id) %>%
@@ -76,7 +77,11 @@ ls_df_evi <-
 evi_all <- bind_rows(ls_df_evi)
 stopCluster(cl)
 
-evi_all_test <- evi_all %>% filter(id <= 2)
+#write_rds(evi_all, str_c(.path$dat_proc, "evi_all.rds"))
+
+evi_all_test <- evi_all %>% filter(id %in% c(75,79,89,9))
+
+evi_all %>% filter(mean_sos>170) %>% distinct(id)
 
 View(evi_all)
 ggplot(evi_all_test) +
@@ -92,22 +97,3 @@ ggplot(evi_all_test) +
 
 
 
-
-
-
-# fit double-logistic function to one year of data
-fit <- FitDoubleLogElmore(x)
-fit
-plot(x)
-lines(fit$predicted, col = "blue")
-
-# do more inital trials, plot iterations and compute parameter uncertainties
-FitDoubleLogElmore(x, hessian = TRUE, plot = TRUE, ninit = 1000)
-
-# fit double-logistic function to one year of data,
-# interpolate to daily time steps and calculate phenology metrics
-tout <- seq(1, 12, length = 365) # time steps for output (daily)
-fit <- FitDoubleLogElmore(x, tout = tout)
-plot(x)
-lines(tout, fit$predicted, col = "blue")
-PhenoDeriv(fit$predicted, plot = TRUE)
