@@ -1,5 +1,10 @@
 # download daymet and reform evi_DB structure
-# Ziyu, I made the data structure exactly the same as that of phenocam_DB, especially that environmental variables should be matrices, not tibble or lists.
+
+v_id <- evi_df %>%
+  pull(id) %>%
+  unique() %>%
+  sort()
+v_year <- 2000:2022
 
 df_evi_meta <- evi_df %>%
   distinct(id, lat, lon)

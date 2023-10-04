@@ -1,0 +1,22 @@
+---
+title: "Load dataset"
+output: html_document
+date: "2023-10-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# load library
+source("scripts/setup.R")
+```
+
+```{r}
+# load raw EVi data and climate data
+climate_df <- read_rds(str_c(.path$dat_proc, "climate_df.rds"))
+evi_df <- read_rds(str_c(.path$dat_proc, "raw_evi.rds"))
+```
+
+

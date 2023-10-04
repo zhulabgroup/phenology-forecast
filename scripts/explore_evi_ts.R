@@ -3,6 +3,7 @@ evi_df <- read_rds(str_c(.path$rs_evi, area, ".ts.rds")) %>%
   filter(qa_good) %>%
   dplyr::select(id, lon, lat, date, evi) %>%
   as_tibble()
+#write_rds(evi_df, str_c(.path$dat_proc, "raw_evi.rds"))
 
 View(evi_df)
 # devtools::install_github("bluegreen-labs/phenor@v1.0")

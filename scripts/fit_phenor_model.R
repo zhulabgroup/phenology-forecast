@@ -86,8 +86,9 @@ df_model <- bind_rows(ls_df_model) %>%
 
 #write_rds(df_model,str_c(.path$dat_proc,"model_pred.rds"))
 
+
 ggplot(df_model) +
-  geom_jitter(aes(x = doy, y = pred, col = site)) +
+  geom_jitter(aes(x = doy, y = pred, col = site),alpha = 0.5) +
   theme_classic() +
   guides(col = "none") +
   facet_wrap(. ~ model) +

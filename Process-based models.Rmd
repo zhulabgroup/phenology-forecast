@@ -9,10 +9,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-```
-
-
-```{r}
 source("scripts/setup.R")
 ```
 
