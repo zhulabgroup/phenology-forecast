@@ -1,0 +1,84 @@
+---
+title: "Process-based models"
+output: html_document
+date: "2023-03-10"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(phenoforecast) # build package before using
+```
+
+Set study area.
+```{r}
+area <- "Appalachians / Cumberland Plateau"
+# area <- "Pacific Southwest"
+
+domain <- read_neon_domain(dir = "alldata/input/NEON_domain/", area = area)
+plot(domain$wgs)
+```
+
+Download MODIS EVI and MODIC Land Cover.
+```{r, eval=FALSE}
+prep_download_modis(data = "evi", domain = domain$wgs, area = area, dir = "alldata/input/")
+download_modis(data = "evi", area = area, dir = "alldata/input/", num_cores = 36)
+
+prep_download_modis(data = "lc", domain = domain$wgs, area = area, dir = "alldata/input/")
+download_modis(data = "lc", area = area, dir = "alldata/input/", num_cores = 36)
+```
+
+Read land cover types and get land cover mask.
+```{r, eval = F}
+ras_lc <- read_lc(indir = "alldata/input/", domain = domain$sinu, area = area, outdir = "alldata/intermediate/")
+ras_lc_mask <- prep_lc_mask(ras_lc, lc_name = "Deciduous Broadleaf Forests") # For Appalachians
+# ras_lc_mask <- prep_lc_mask (ras_lc, lc_name = "Grasslands") # For Pacific Southwest
+plot(ras_lc_mask)
+```
+
+Get 200 random coordinates 
+```{r, eval = F}
+sp_coord <- prep_coord(ras_lc_mask, num_coord = 100, area = area)
+```
+
+```{r}
+sp_coord <- read_coord(dir = "alldata/intermediate/", area = area)
+plot(sp_coord)
+```
+
+Extract EVI and QA at selected coordinates.
+```{r, eval=FALSE}
+sp_evi <- read_evi_full(indir = "alldata/input/", domain = domain$sinu, area = area, sp_coord = sp_coord, outdir = "alldata/intermediate/", num_cores = 35)
+```
+
+Tidy up EVI data and visualize.
+```{r}
+df_evi <- read_evi_tidy(dir = "alldata/intermediate/", area = area, year_forecast = 2018)
+plot_evi_explore(df_evi = df_evi, n_coord = 3, seed = 1)
+```
+
+Dwonload and read climate data.
+```{r, eval = F}
+download_daymet(sp_coord, outdir = "alldata/intermediate/", area = area, num_cores = 35)
+```
+
+```{r}
+df_climate <- read_climate(dir = "alldata/intermediate/", area = area)
+```
+
+Ziyu, please try to organize the code below.
+```{r}
+remotes::install_github("bluegreen-labs/phenor@v1.0")
+library(phenor)
+```
+
+```{r}
+source("scripts/phenological_metrics.R")
+```
+
+```{r}
+source("scripts/prepare_data_for_phenor.R")
+```
+
+```{r}
+source("scripts/phenor_model_compare.R")
+```

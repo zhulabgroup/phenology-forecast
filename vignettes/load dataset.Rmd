@@ -1,0 +1,27 @@
+---
+title: "Load dataset"
+output: html_document
+date: "2023-10-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(phenoforecast) # build package before using
+```
+
+Set study area.
+```{r}
+# area <- "Appalachians / Cumberland Plateau"
+area <- "Pacific Southwest"
+```
+
+Load EVI data (response variable)
+```{r}
+df_evi <- read_evi_tidy(dir = "alldata/intermediate/", area = area, year_forecast = 2018)
+plot_evi_explore(df_evi = df_evi, n_coord = 3, seed = 1)
+```
+
+Load climate data (explanatory variables)
+```{r}
+df_climate <- read_climate(dir = "alldata/intermediate/", area = area)
+```
