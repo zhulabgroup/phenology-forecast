@@ -54,6 +54,7 @@ Tidy up EVI data and visualize.
 ```{r}
 df_evi <- read_evi_tidy(dir = "alldata/intermediate/", area = area, year_forecast = 2018)
 plot_evi_explore(df_evi = df_evi, n_coord = 3, seed = 1)
+usethis::use_data(df_evi)
 ```
 
 Dwonload and read climate data.
@@ -63,6 +64,7 @@ download_daymet(sp_coord, outdir = "alldata/intermediate/", area = area, num_cor
 
 ```{r}
 df_climate <- read_climate(dir = "alldata/intermediate/", area = area)
+usethis::use_data(df_climate)
 ```
 
 Ziyu, please try to organize the code below.

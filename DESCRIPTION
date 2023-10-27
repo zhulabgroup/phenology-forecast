@@ -16,3 +16,4 @@ Depends:
     terra,
     foreach,
     doSNOW
+LazyData: true
