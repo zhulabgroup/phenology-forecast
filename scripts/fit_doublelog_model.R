@@ -1,270 +1,173 @@
-model_pred <- read_rds(str_c(.path$dat_proc, "model_pred.rds"))
-View(model_pred)
-
-evi_all <- read_rds(str_c(.path$dat_proc, "evi_all.rds"))
-evi_DB <- read_rds(str_c(.path$dat_proc, "evi_DB.rds"))
-
-par_all <- read_rds(str_c(.path$dat_proc, "dlog_par_all.rds"))
-
-# select one year of NDVI data
-x <- as.vector(window(ndvi, start=c(1991,1), end=c(1991, 12)))
-plot(x)
-
-# fit double-logistic function to one year of data
-fit <- FitDoubleLogElmore(evi_ts)
-fit
-plot(evi_ts)
-lines(fit$predicted, col="blue")
-
-# do more inital trials, plot iterations and compute parameter uncertainties
-res <- FitDoubleLogBeck(evi_ts, plot=TRUE, ninit=100)	
-
-data.frame(t = 1:365, 
-           obs = evi_ts,
-           pred = res$predicted) %>% 
-  ggplot()+
-  geom_point(aes(x = t, y = obs))+
-  geom_line(aes(x = t, y = pred))
-
-res$params
-res$formula
-
-PhenoDeriv(res$predicted, plot = TRUE)
-# # fit double-logistic function to one year of data, 
-# # interpolate to daily time steps and calculate phenology metrics
-# tout <- seq(1, 12, length=365)	# time steps for output (daily)
-# fit <- FitDoubleLogElmore(x, tout=tout)
-# plot(x)
-# lines(tout, fit$predicted, col="blue")
-# PhenoDeriv(fit$predicted, plot=TRUE)
-# res$params
+# load data set
+load("~/phenology-forecast/data/df_model_pred.rda")
+df_pheno_paras <- readRDS("~/phenology-forecast/data/df_pheno_paras.rds")
+df_evi <- df_evi %>% filter(year <= 2021)
+df_paras_v <- df_pheno_paras %>% filter(year <= 2017) %>%
+  group_by(id) %>%
+  summarise(vm1 = mean(m1_mean),
+            vm1sd = sqrt(mean(m1_sd^2) + var(m1_mean)),
+            vm2 = mean(m2_mean),
+            vm2sd = sqrt(mean(m2_sd^2) + var(m2_mean)),
+            vm3 = mean(m3_mean),
+            vm3sd = sqrt(mean(m3_sd^2) + var(m3_mean)),
+            vm4 = mean(m4_mean),
+            vm4sd = sqrt(mean(m4_sd^2) + var(m4_mean)),
+            vm5 = mean(m5_mean),
+            vm5sd = sqrt(mean(m5_sd^2) + var(m5_mean)),
+            vm6 = mean(m6_mean),
+            vm6sd = sqrt(mean(m6_sd^2) + var(m6_mean)),
+            vm7 = mean(m7_mean),
+            vm7sd = sqrt(mean(m7_sd^2) + var(m7_mean)))
+df <- left_join(df_pheno_paras %>% filter(year <= 2021),df_paras_v)
+d <- df %>% filter(year >= 2018 & year <= 2021) %>% group_by(id) %>%
+  mutate(m1_mean = vm1,
+         m1_sd = vm1sd,
+         m2_mean = vm2,
+         m2_sd = vm2sd,
+         m3_mean = vm3,
+         m3_sd = vm3sd,
+         m4_mean = vm4,
+         m4_sd = vm4sd,
+         m5_mean = vm5,
+         m5_sd = vm5sd,
+         m6_mean = vm6,
+         m6_sd = vm6sd,
+         m7_mean = vm7,
+         m7_sd = vm7sd)
+df_pheno_paras_v <- df_pheno_paras %>% filter(year <= 2017) %>% rbind(d[,1:29]) %>% 
+  group_by(year) %>% arrange(id) %>% ungroup()
+#usethis::use_data(df_pheno_paras_v)
 
 
 pred_evi <- function(params, t ) {
-  mn <- as.numeric(params["MN"])
-  mx <- as.numeric(params["MX"])
-  sos <- as.numeric(params["SOS"])
-  eos <- as.numeric(params["EOS"])
-  rsp <- as.numeric(params["RSP"])
-  rau <- as.numeric(params["RAU"])
+  m1 <- as.numeric(params["m1_mean"])
+  m2 <- as.numeric(params["m2_mean"])
+  m3 <- as.numeric(params["m3_mean"])
+  m4 <- as.numeric(params["m4_mean"])
+  m5 <- as.numeric(params["m5_mean"])
+  m6 <- as.numeric(params["m6_mean"])
+  m7 <- as.numeric(params["m7_mean"])
   
-  
-  evi <- (mn + (mx - mn) * (1/(1 + exp(-rsp * (t - sos))) + 
-                              1/(1 + exp(rau * (t - eos)))))
-  
+  evi <- (m1 + (m2 - m7*t) * (1/(1 + exp((m3-t)/m4)) - 
+                              1/(1 + exp((m5-t)/m6))))
   return(evi)
 }
 
 
-res <- FitDoubleLogBeck(evi_ts, plot=TRUE, ninit=100)	
-
-data.frame(t = 1:365, 
-           obs = evi_ts,
-           pred = res$predicted) %>% 
-  ggplot()+
-  geom_point(aes(x = t, y = obs))+
-  geom_line(aes(x = t, y = pred))
-
-
-
-paras <- par_all%>% dplyr::select(id,year,MN,MX,SOS,EOS,RSP,RAU) %>% distinct()
-
-
-para_est_df <- data.frame(
-  Ctemp = numeric(0),
-  Cprecip = numeric(0),
-  Cmn = numeric(0),
-  Cmx = numeric(0),
-  Csos = numeric(0),
-  Ceos = numeric(0),
-  Crsp = numeric(0),
-  Crau = numeric(0)
-)
-
-indiv_df <- list()
-model_list <- list()
-pred_all <- data.frame()
-for(i in 1:100){
-  evi_all_sub <- evi_all %>% filter(id == i)
-  paras_sub <- paras %>% filter(id == i)
-  temp = colMeans(evi_DB[[i]]$Ti)
-  precip = colMeans(evi_DB[[i]]$Pi)
-  mn = paras_sub$MN
-  mx = paras_sub$MX
-  eos = paras_sub$EOS
-  rsp = paras_sub$RSP
-  rau = paras_sub$RAU
-  
-  new_df <- data.frame(
-    Ctemp = temp,
-    Cprecip = precip,
-    Cmn = mn,
-    Cmx = mx,
-    Ceos = eos,
-    Crsp = rsp,
-    Crau = rau
-    
-  )
-  para_est_df <- bind_rows(para_est_df,new_df)
-  indiv_df[[i]] <- new_df
-}
-
-fit_lm_maxevi<- lm(Cmx ~ Ctemp + Cprecip, data = para_est_df)
-fit_lm_minevi<- lm(Cmn ~ Ctemp + Cprecip, data = para_est_df)
-fit_lm_rsp<- lm(Crsp ~ Ctemp + Cprecip, data = para_est_df)
-fit_lm_rau<- lm(Crau ~ Ctemp + Cprecip, data = para_est_df)
-fit_lm_eos<- lm(Ceos ~ Ctemp + Cprecip, data = para_est_df)
-model_list[[1]] <- fit_lm_maxevi
-model_list[[2]] <- fit_lm_minevi
-model_list[[3]] <- fit_lm_rsp
-model_list[[4]] <- fit_lm_rau
-model_list[[5]] <- fit_lm_eos
-
-for(i in 1:100){
-  pred_maxevi <- predict(model_list[[1]],indiv_df[[i]])
-  pred_minevi <-predict(model_list[[2]],indiv_df[[i]])
-  pred_rsp <-predict(model_list[[3]],indiv_df[[i]])
-  pred_rau <-predict(model_list[[4]],indiv_df[[i]])
-  pred_eos <-predict(model_list[[5]],indiv_df[[i]])
-  for(m in 1:9){
-    p <- model_pred %>% 
-      filter(model==as.character(levels(model_pred$model)[m])) %>% 
-      filter(site == i)
-    df_pred_para <- data.frame(id = i,
-                            model = p$model,
-                             MX = pred_maxevi,
-                             MN = pred_minevi,
-                             RSP = pred_rsp,
-                             RAU = pred_rau,
-                             SOS = p$pred,
-                             EOS = pred_eos)
-    pred_all <- bind_rows(pred_all,df_pred_para)
+cl <- makeCluster(36, outfile = "")
+registerDoSNOW(cl)
+year_loop <- function(s,m,orig_paras,pred_paras){
+  df_evi_plot <- data.frame()
+  for(i in 1:22){
+    df <- data.frame(t = 1:365,
+                     id = s,
+                     orig_evi = pred_evi(orig_paras[i,],1:365),
+                     pred_evi = pred_evi(pred_paras[i,],1:365),
+                     model = levels(df_model_pred$model)[m])
+    df_evi_plot <- bind_rows(df_evi_plot,df)
   }
-
+  return(df_evi_plot)
 }
 
-
-
-
-
-
-df_evi_plot <- data.frame()
-
-for(s in 1:1){
-  for(m in 1:9){
-    orig_paras <- paras %>% filter(id == s)
-    pred_paras <- pred_all %>% filter(id == s) %>% 
-      filter(model == levels(model_pred$model)[m])
-    for(i in 1:23){
-      df <- data.frame(t = 1:365,
-                       id = s,
-                       orig_evi = pred_evi(orig_paras[i,],1:365),
-                       pred_evi = pred_evi(pred_paras[i,],1:365),
-                       model = levels(model_pred$model)[m])
-      df_evi_plot <- bind_rows(df_evi_plot,df)
+df_evi_plot <- foreach(s=1:100,.combine = "bind_rows",
+                       .packages = c("tidyverse", "phenor")) %dopar% {
+    df_evi_plot <- data.frame()
+    orig_paras <- df_pheno_paras_v %>% filter(id == s)
+    for(m in 1:9){
+      pred_paras <- df_pheno_paras_v %>% filter(id == s) %>%
+        mutate(m3_mean = df_model_pred %>% 
+                filter(model == levels(df_model_pred$model)[m]) %>% 
+                 filter(site == s) %>%
+                  pull(pred)) 
+      df_evi_plot <- rbind(df_evi_plot,year_loop(s,m,orig_paras,pred_paras))
     }
-  }
+    return(df_evi_plot)
 }
+df_evi_plot <- data.frame(df_evi_plot)
+stopCluster(cl)
 
-date = evi_all %>% filter(id %in% c(1)) %>% dplyr::select(date)
+date = df_climate %>% filter(id == 1) %>% dplyr::select(date)
 df_evi_plot <- df_evi_plot %>% group_by(id,model)  %>%
   mutate(date) %>% 
   mutate(year = as.numeric(format(date, format = "%Y")))
 
-#write_rds(df_evi_plot, str_c(.path$dat_proc, "df_evi_plot.rds"))
+evi_pt <- date %>% left_join(df_evi %>% filter(id == 1) %>% 
+                               dplyr::select(date,evi), by = "date")
+df_evi_plot <- df_evi_plot %>% left_join(evi_pt, by = "date")
+usethis::use_data(df_evi_plot)
 
-# rmse for each model
-df_evi_plot %>% group_by(model) %>% 
-  mutate(err_evi = sqrt(mean(abs(pred_evi - orig_evi)^2))) %>% 
-  ungroup %>%
-  distinct(model,err_evi)
-
-df_evi_plot <- df_evi_plot %>% left_join(evi_ts_all,by = "date")
-
-evi_ts_all <- data.frame(evi_ts_all) %>% mutate(date)
-
-
-plot_pred <- df_evi_plot %>% filter(model %in%c("LIN","AT","TT")) %>%
-  rowwise() %>% 
+plot_pred <- df_evi_plot %>% filter(model %in%c("LIN","M1","PA") &
+                                      id == 1 & year >= 2018) %>% rowwise() %>% 
   ggplot()+
-  geom_line(aes(x = date, y = pred_evi),color = "green",alpha = 0.8) +
-  geom_line(aes(x = date, y = orig_evi),color = "black",alpha = 0.8) +
-  facet_wrap(.~model,ncol = 1) + ylab("EVI")+ 
-geom_point(aes(x = date, y = evi_pt),alpha = 0.5)
-
+  geom_line(aes(x = date, y = orig_evi),color = "black",alpha = 0.8)+
+  geom_line(aes(x = date, y = pred_evi),color = "green",alpha = 0.6)+
+  facet_wrap(.~model,ncol = 1) + ylab("EVI") + 
+  geom_point(aes(x = date, y = evi),alpha = 0.4) +
+  geom_vline(xintercept = as.numeric(as.Date("2018-01-01")),
+             linetype = "dashed",color = "blue")
 library(cowplot)
 plot_grid(plot_pred,ncol = 1)
 
-x
+# Calculate rmse for evi
+df_evi_train_rmse <- df_evi_plot %>% filter(year <= 2017) %>%
+  mutate(error = (pred_evi - evi)^2) %>% filter(t %in% c(100:130))%>%
+  group_by(model,id) %>%
+  summarise(rmse = mean(error,na.rm = TRUE) %>% sqrt(), .groups = "drop")
+
+df_evi_test_rmse <- df_evi_plot %>% filter(year > 2017) %>%
+  mutate(error = (pred_evi - evi)^2) %>% filter(t %in% c(100:130)) %>%
+  group_by(model,id) %>%
+  summarise(rmse = mean(error,na.rm = TRUE) %>% sqrt(), .groups = "drop")
+
+ggplot(df_evi_train_rmse) +
+  geom_boxplot(aes(x = model, y = rmse, color = model)) +
+  theme_classic() +
+  ylim(0.05,0.16) + 
+  scale_x_discrete(limits = c("LIN", "TT", "PTT", "M1", "AT", "SQ", "SM1", "PA", "PM1")) +
+  scale_color_manual(values = c(
+    "LIN" = "black", "TT" = "orange",
+    "PTT" = "orange", "M1" = "orange",
+    "AT" = "blue", "SQ" = "blue",
+    "SM1" = "blue", "PA" = "blue",
+    "PM1" = "blue"
+  )) +
+  ylab("Training RMSE for EVI") +
+  xlab("Models") +
+  guides(color = FALSE)
+
+ggplot(df_evi_test_rmse) +
+  geom_boxplot(aes(x = model, y = rmse, color = model)) +
+  theme_classic() +
+  ylim(0.05, 0.16) +
+  scale_x_discrete(limits = c("LIN", "TT", "PTT", "M1", "AT", "SQ", "SM1", "PA", "PM1")) +
+  scale_color_manual(values = c(
+    "LIN" = "black", "TT" = "orange",
+    "PTT" = "orange", "M1" = "orange",
+    "AT" = "blue", "SQ" = "blue",
+    "SM1" = "blue", "PA" = "blue",
+    "PM1" = "blue"
+  )) +
+  ylab("Vidation RMSE for EVI") +
+  xlab("Models") +
+  guides(color = FALSE)
 
 
 
 
-
-
-
-
-
-
-
-month_mean_evi <- evi_all %>% filter(id==4) %>% group_by(month) %>%
-  mutate(mean_evi_mon = sum(evi_tsgf)/(n_distinct(year)*n_distinct(day))) %>%
-  dplyr::select(month,mean_evi_mon) %>% dplyr::distinct(mean_evi_mon)
-
-evi <- month_mean_evi$mean_evi_mon
-
-x <- as.vector(window(ndvi,start = c(1991,1),end = c(1991,12)))
-plot(evi)
-# fit double-logistic function to one year of data
-fit <- FitDoubleLogElmore(evi)
-fit
-lines(fit$predicted, col = "blue")
-
-# do more inital trials, plot iterations and compute parameter uncertainties
-FitDoubleLogElmore(evi, hessian = TRUE, plot = TRUE, ninit = 1000)
-
-# fit double-logistic function to one year of data,
-# interpolate to daily time steps and calculate phenology metrics
-tout <- seq(1, 12, length = 365) # time steps for output (daily)
-fit <- FitDoubleLogElmore(evi, tout = tout)
-plot(evi)
-lines(tout, fit$predicted, col = "blue")
-PhenoDeriv(fit$predicted, plot = TRUE)[1]
-
-
-
-model_pred %>% filter(site==4) %>% group_by(model) %>%
-  mutate(pred_mean = sum(pred) / n_distinct(year),
-         doy_mean = sum(doy,na.rm = TRUE) / n_distinct(year)) %>%
-  dplyr::select(site,model,pred_mean,doy_mean) %>%
-  dplyr::distinct(site,model,pred_mean,doy_mean)
-
-
-
-
-
-
-
-
-
-View(evi_DB[[1]])
-model_pred_test <- model_pred %>% filter(site == 1 & model == "LIN")
-evi_all %>% filter(year==2001 & id == 1)
-evi_DB_pred <- evi_DB[[1]]
-evi_DB_pred$transition_dates = model_pred_test$pred
-View(evi_DB_pred)
-
-evi_all_test = evi_all %>% filter(id == 1)
-
-evi_test <- evi_df %>% filter(id == 1)
-install.packages("minpack.lm")
-library(minpack.lm)
-model <- nls(evi_all_test$evi_tsgf ~ 
-        m1 + (m2-m7*evi_all_test$doy)*
-          ((1/(1+exp(m3/m4-evi_all_test$doy)/(1/m4)))) - 
-          (1/(1+exp((m5/m6-evi_all_test$doy)/(1/m6)))),
-      data = evi_all_test,
-      start = c(m1=0.1,m2=0.1,m3=0.1,m4=0.1,m5=0.1,m6=0.1,m7=0.1))
-
-
+for(s in 1:1){
+  for(m in 1:9){
+    orig_paras <- df_pheno_paras %>% filter(id == s)
+    pred_paras <- df_pheno_paras %>% mutate(m3_mean = df_model_pred %>% 
+                                              filter(model == levels(df_model_pred$model)[m]) %>%
+                                              pull(pred)) %>% filter(id == s)
+    for(i in 1:22){
+      df <- data.frame(t = 1:365,
+                       id = s,
+                       orig_evi = pred_evi(orig_paras[i,],1:365),
+                       pred_evi = pred_evi(pred_paras[i,],1:365),
+                       model = levels(df_model_pred$model)[m])
+      df_evi_plot <- bind_rows(df_evi_plot,df)
+    }
+  }
+}
 

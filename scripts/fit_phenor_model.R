@@ -79,30 +79,50 @@ ls_df_model <-
   }
 stopCluster(cl)
 
-df_model <- bind_rows(ls_df_model) %>%
+df_model_pred <- bind_rows(ls_df_model) %>%
   mutate(model = factor(model,
     levels = c("LIN", "TT", "PTT", "M1", "AT", "SQ", "SM1", "PA", "PM1")
   ))
 
-#write_rds(df_model,str_c(.path$dat_proc,"model_pred.rds"))
 
+# code for generate plot
+df_model_pred <- df_model_pred  %>% group_by(model) %>%
+  mutate(doy = df_pheno_paras %>% filter(year <=2021) %>% 
+           pull(m3_mean) %>% round())
+df_model_pred_train <- df_model_pred %>% filter(year < 2018)
+df_model_pred_test <- df_model_pred %>% filter(year > 2017)
 
-ggplot(df_model) +
+  
+ggplot(df_model_pred_train) +
+  geom_jitter(aes(x = doy, y = pred, col = site),alpha = 0.4) +
+  theme_classic() +
+  guides(col = "none") +
+  facet_wrap(. ~ model) +
+  ylab("Training pred doy") +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  coord_equal()
+
+ggplot(df_model_pred_test) +
   geom_jitter(aes(x = doy, y = pred, col = site),alpha = 0.5) +
   theme_classic() +
   guides(col = "none") +
   facet_wrap(. ~ model) +
-  ylab("pred doy") +
+  ylab("Validation pred doy") +
   geom_abline(intercept = 0, slope = 1, col = "red") +
   coord_equal()
 
 
-df_model_rmse <- df_model %>%
+df_model_train_rmse <- df_model_pred_train %>%
   mutate(error = (pred - doy)^2) %>%
   group_by(model, site) %>%
-  summarise(rmse = mean(error, na.rm = T) %>% sqrt(), .groups = "drop")
+  summarise(rmse = mean(error) %>% sqrt(), .groups = "drop")
 
-ggplot(df_model_rmse) +
+df_model_test_rmse <- df_model_pred_test %>%
+  mutate(error = (pred - doy)^2) %>%
+  group_by(model, site) %>%
+  summarise(rmse = mean(error) %>% sqrt(), .groups = "drop")
+
+ggplot(df_model_train_rmse) +
   geom_boxplot(aes(x = model, y = rmse, color = model)) +
   theme_classic() +
   ylim(0, 20) +
@@ -114,43 +134,22 @@ ggplot(df_model_rmse) +
     "SM1" = "blue", "PA" = "blue",
     "PM1" = "blue"
   )) +
-  ylab("RMSE (days)") +
+  ylab("RMSE (days) for training") +
   xlab("Models") +
   guides(color = FALSE)
 
-
-# Ziyu, I'm not using any of these below because I automated them, but feel free to make changes.
-# SQ
-c(180, 180, 0, 2.5, 2.5, 7.5, 1000, 180)
-c(1, 1, -10, -5, -5, 0, 0, 0)
-c(365, 365, 10, 10, 10, 15, 2000, 350)
-
-# AT
-c(180, 0, 250, 500, 2.5)
-c(1, -10, 0, 0, 0)
-c(365, 10, 500, 1000, 5)
-
-# PA
-c(180, 180, 0, 2.5, 2.5, 7.5, 0.5, 1000, 175)
-c(1, 1, -10, -5, -5, 0, 0, 0, 0)
-c(365, 365, 10, 10, 10, 15, 1, 2000, 350)
-
-# UN
-c(180, 5, 5, -10, -10, 7.5, 0, 50, 175)
-c(1, 0, 0.1, -20, -20, -5, -10, 0, 0)
-c(365, 10, 10, 0.1, 0.1, 20, 10, 100, 350)
-
-# SM1
-c(180, 180, 0, 2.5, 2.5, 7.5, 1000, 175)
-c(1, 1, -10, -5, -5, 0, 0, 0)
-c(365, 365, 10, 10, 10, 15, 2000, 350)
-
-# PM1
-c(180, 0, 2.5, 2.5, 7.5, 0.5, 1000, 175)
-c(1, -10, -5, -5, 0, 0, 0, 0)
-c(365, 10, 10, 10, 15, 1, 2000, 350)
-
-# SGSI
-c(-7.5, 22.5, 0.5, 1000, 3500, 10, 11)
-c(-15, 0, 0, 0, 2000, 8, 10)
-c(0, 45, 1, 2000, 5000, 11.5, 12)
+ggplot(df_model_test_rmse) +
+  geom_boxplot(aes(x = model, y = rmse, color = model)) +
+  theme_classic() +
+  ylim(0, 20) +
+  scale_x_discrete(limits = c("LIN", "TT", "PTT", "M1", "AT", "SQ", "SM1", "PA", "PM1")) +
+  scale_color_manual(values = c(
+    "LIN" = "black", "TT" = "orange",
+    "PTT" = "orange", "M1" = "orange",
+    "AT" = "blue", "SQ" = "blue",
+    "SM1" = "blue", "PA" = "blue",
+    "PM1" = "blue"
+  )) +
+  ylab("RMSE (days) for validation") +
+  xlab("Models") +
+  guides(color = FALSE)
